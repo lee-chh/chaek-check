@@ -489,7 +489,21 @@ function App() {
                         <ul>
                           {msg.sources.map((src, i) => (
                             <li key={i}>
-                              {src.file} (p.{src.page})
+                              <a 
+                                href={`/pdfs/${src.raw_file}#page=${src.page}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{ 
+                                  textDecoration: 'none', 
+                                  color: '#0066cc', 
+                                  fontWeight: '600',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                {src.file} (p.{src.page}) <span style={{fontSize: '0.8em'}}>🔍 원문 뷰어 열기</span>
+                              </a>
                             </li>
                           ))}
                         </ul>
