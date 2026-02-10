@@ -9,8 +9,8 @@ const GlobalStyle = createGlobalStyle`
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: #000; /* Fallback */
-    overflow: hidden; /* Prevent body scroll, handle in app */
+    background: #000; /* 에러 났을 때 보이던 검은 화면의 정체! */
+    overflow: hidden; 
   }
   
   * {
@@ -23,8 +23,13 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-// --- Styled Components (Apple Liquid Glass) ---
+// 🚨 에러 원인 해결: keyframes를 밖으로 안전하게 빼냈습니다.
+const float = keyframes`
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(30px, 50px); }
+`;
 
+// --- Styled Components (Apple Liquid Glass) ---
 const Background = styled.div`
   position: fixed;
   top: 0;
@@ -39,14 +44,13 @@ const Background = styled.div`
   justify-content: center;
   align-items: center;
   
-  /* Abstract blobs */
   &::before, &::after {
     content: '';
     position: absolute;
     border-radius: 50%;
     filter: blur(60px);
     opacity: 0.6;
-    animation: float 10s infinite ease-in-out alternate;
+    animation: ${float} 10s infinite ease-in-out alternate;
   }
   
   &::before {
@@ -65,11 +69,6 @@ const Background = styled.div`
     background-image: linear-gradient(135deg, #8BC6EC 0%, #9599E2 100%);
     bottom: -50px;
     right: -50px;
-  }
-
-  @keyframes float {
-    0% { transform: translate(0, 0); }
-    100% { transform: translate(30px, 50px); }
   }
 `;
 
@@ -90,7 +89,7 @@ const GlassContainer = styled.div`
   transition: all 0.5s ease;
 `;
 
-// --- Home / Search Layout ---
+// 🚨 에러 원인 해결: 커스텀 속성명 앞에 $를 붙여서 에러를 막았습니다.
 const HomeContent = styled.div`
   flex: 1;
   display: flex;
@@ -100,7 +99,7 @@ const HomeContent = styled.div`
   padding: 40px;
   gap: 30px;
   animation: ${fadeIn} 0.6s ease-out;
-  display: ${props => props.visible ? 'flex' : 'none'};
+  display: ${props => props.$visible ? 'flex' : 'none'};
 `;
 
 const LogoTitle = styled.h1`
@@ -151,8 +150,7 @@ const SearchContainer = styled.div`
   position: relative;
   transition: all 0.5s ease;
   
-  /* Chat Mode Styles */
-  ${props => props.isChatMode && `
+  ${props => props.$isChatMode && `
     position: absolute;
     bottom: 0;
     left: 0;
@@ -218,26 +216,13 @@ const SendButton = styled.button`
   transition: transform 0.2s, opacity 0.2s;
   box-shadow: 0 2px 8px rgba(118, 75, 162, 0.4);
 
-  &:hover {
-    transform: scale(1.05);
-  }
-  
-  &:active {
-    transform: scale(0.95);
-  }
-  
-  &:disabled {
-    background: #ccc;
-    box-shadow: none;
-    cursor: default;
-  }
+  &:hover { transform: scale(1.05); }
+  &:active { transform: scale(0.95); }
+  &:disabled { background: #ccc; box-shadow: none; cursor: default; }
 
-  svg {
-    margin-left: 2px;
-  }
+  svg { margin-left: 2px; }
 `;
 
-// --- Chat Mode Components ---
 const Header = styled.div`
   position: absolute;
   top: 0;
@@ -263,27 +248,21 @@ const Header = styled.div`
 const ChatArea = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 80px 20px 100px 20px; /* Header & Input clearance */
+  padding: 80px 20px 100px 20px;
   display: flex;
   flex-direction: column;
   gap: 24px;
   scroll-behavior: smooth;
   
-  /* Hide scrollbar but keep functionality */
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.1);
-    border-radius: 3px;
-  }
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
 `;
 
 const MessageBubble = styled.div`
   display: flex;
   flex-direction: column;
   max-width: 80%;
-  align-self: ${props => props.isUser ? 'flex-end' : 'flex-start'};
+  align-self: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
   animation: ${fadeIn} 0.3s ease-out;
 `;
 
@@ -295,7 +274,7 @@ const BubbleContent = styled.div`
   position: relative;
   word-wrap: break-word;
   
-  ${props => props.isUser ? `
+  ${props => props.$isUser ? `
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border-bottom-right-radius: 4px;
@@ -308,11 +287,10 @@ const BubbleContent = styled.div`
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
   `}
 
-  /* Markdown Styles */
   p { margin: 0 0 8px 0; &:last-child { margin: 0; } }
-  a { color: ${props => props.isUser ? '#ffd' : '#667eea'}; }
+  a { color: ${props => props.$isUser ? '#ffd' : '#667eea'}; }
   code { 
-    background: ${props => props.isUser ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)'}; 
+    background: ${props => props.$isUser ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)'}; 
     padding: 2px 4px; 
     border-radius: 4px; 
     font-family: monospace;
@@ -364,11 +342,10 @@ const LoadingIndicator = styled.div`
 `;
 
 function App() {
-  // 초기 메시지가 있어도 사용자가 입력하기 전까지는 "Home" 화면 유지
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(false); // 채팅 모드 전환용
+  const [hasInteracted, setHasInteracted] = useState(false);
   const scrollRef = useRef();
   const messagesEndRef = useRef();
 
@@ -387,7 +364,6 @@ function App() {
 
   const handleExampleClick = (text) => {
     setInput(text);
-    // 엔터는 사용자가 누른다고 했으므로, 입력창에 focus를 줌
     document.getElementById("chat-input")?.focus();
   };
 
@@ -397,9 +373,8 @@ function App() {
     const userMsg = input;
     setInput("");
     setLoading(true);
-    setHasInteracted(true); // Switch to Chat Mode
+    setHasInteracted(true); 
 
-    // Add user message
     setMessages(prev => [...prev, { role: "user", content: userMsg }]);
 
     try {
@@ -427,16 +402,14 @@ function App() {
       <Background>
         <GlassContainer>
           
-          {/* Chat Mode Header */}
           {hasInteracted && (
             <Header>
               <h2>책첵 (Chaek-Check)</h2>
             </Header>
           )}
 
-          {/* Home Screen Content */}
           {!hasInteracted && (
-            <HomeContent visible={!hasInteracted}>
+            <HomeContent $visible={!hasInteracted}>
               <LogoTitle>책첵 (Chaek-Check)</LogoTitle>
               <p style={{ color: '#666', fontSize: '1.1rem', marginTop: '-20px' }}>
                 K리그 & KBO 규정집 AI 검색
@@ -452,18 +425,11 @@ function App() {
             </HomeContent>
           )}
 
-          {/* Chat History Area */}
           {hasInteracted && (
             <ChatArea>
-              {/* Optional: Show initial greeting only if desired, or start fresh. 
-                  Existing logic had a greeting. We can inject it if needed, 
-                  but strictly 'messages' state starts empty in this new version 
-                  until user asks, OR we can pre-fill it. 
-                  Let's keep it clean as per "Search" paradigm. 
-              */}
               {messages.map((msg, idx) => (
-                <MessageBubble key={idx} isUser={msg.role === "user"}>
-                  <BubbleContent isUser={msg.role === "user"}>
+                <MessageBubble key={idx} $isUser={msg.role === "user"}>
+                  <BubbleContent $isUser={msg.role === "user"}>
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                     
                     {msg.role === "assistant" && msg.sources && msg.sources.length > 0 && (
@@ -487,14 +453,13 @@ function App() {
             </ChatArea>
           )}
 
-          {/* Input Area (Shared/Transitioned) */}
-          <SearchContainer isChatMode={hasInteracted}>
+          <SearchContainer $isChatMode={hasInteracted}>
             <SearchInputWrapper>
               <SearchInput 
                 id="chat-input"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
                 placeholder={hasInteracted ? "추가 질문을 입력하세요..." : "규정에 대해 물어보세요..."}
                 disabled={loading}
                 autoComplete="off"
