@@ -97,6 +97,9 @@ const GlassContainer = styled.div`
   position: relative;
   z-index: 10; /* 배경보다 위에 위치 */
   transition: all 0.5s ease;
+  
+  /* 모바일 상단 노치 대응 (전체 컨테이너 패딩) */
+  padding-top: env(safe-area-inset-top);
 `;
 
 const HomeContent = styled.div`
@@ -165,6 +168,7 @@ const SearchContainer = styled.div`
   position: relative;
   transition: all 0.5s ease;
   padding: 0 20px; /* 기본 패딩 추가 */
+  align-self: center; /* 홈 화면에서 중앙 정렬 보장 */
 
   /* Chat Mode Styles */
   ${props => props.$isChatMode && `
@@ -261,7 +265,9 @@ const Header = styled.div`
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  /* 상단 노치 영역만큼 높이 추가 */
+  height: calc(60px + env(safe-area-inset-top)); 
+  padding-top: env(safe-area-inset-top);
   display: flex;
   align-items: center;
   justify-content: center;
