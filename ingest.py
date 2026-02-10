@@ -10,7 +10,7 @@ from langchain_chroma import Chroma
 load_dotenv()
 
 # 2. 임베딩 모델 설정
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
 # 3. 경로 설정
 DATA_FOLDER = "./data"
@@ -42,8 +42,8 @@ def ingest_data():
 
     # 5. 텍스트 쪼개기
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200,
+        chunk_size=5000,
+        chunk_overlap=50,
         separators=["\n\n", "\n", " ", ""]
     )
     splits = text_splitter.split_documents(documents)

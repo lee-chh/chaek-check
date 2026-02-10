@@ -12,3 +12,5 @@ data/
 
 # 벡터 데이터베이스 폴더 (추가)
 db_chroma/
+node_modules
+.DS_Store
