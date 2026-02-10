@@ -139,14 +139,14 @@ def chat_endpoint(request: ChatRequest):
         
         raw_answer = result["answer"]
         final_answer = raw_answer
-
-        # AI가 VERIFIED_SOURCES를 출력했으면 그 부분만 잘라내기 (프론트엔드에 지저분하게 안 보이게)
-        if "VERIFIED_SOURCES:" in raw_answer:
-            final_answer = raw_answer.split("VERIFIED_SOURCES:")[0].strip()
+            
+        # 🚨 [추가된 로직] AI가 "철벽 방어" 멘트를 치면 출처 박스를 차단합니다!
+        is_refusal = "죄송합니다" in final_answer and "에이전트" in final_answer
 
         # 출처(Source) 가공 및 전달
         sources = []
-        if "context" in result:
+        # 🚨 [수정된 로직] is_refusal이 아닐 때(정상 답변일 때)만 출처를 만듭니다!
+        if "context" in result and not is_refusal: 
             seen = set()
             for doc in result["context"]:
                 raw_source = os.path.basename(doc.metadata.get("source", "Unknown"))
@@ -156,10 +156,9 @@ def chat_endpoint(request: ChatRequest):
                 
                 if key not in seen:
                     seen.add(key)
-                    # 🚨 깐깐한 필터링 제거: 일단 검색된 문서는 무조건 프론트엔드에 전달 (안전 모드)
                     sources.append({
                         "file": clean_source,
-                        "raw_file": raw_source,  # PDF 링크 연결을 위한 원본 영어 파일명
+                        "raw_file": raw_source,
                         "page": page,
                         "preview": doc.page_content[:100]
                     })
