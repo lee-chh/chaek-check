@@ -147,6 +147,7 @@ const ScrollHint = styled.div`
   font-weight: 600;
   animation: ${bounce} 2s infinite;
   opacity: 0.8;
+  text-align: center;
 `;
 
 const DetailsSection = styled.div`
@@ -213,6 +214,57 @@ const MarqueeItem = styled.div`
   box-shadow: 0 4px 15px rgba(0,0,0,0.08);
 `;
 
+const LogoGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0;
+  justify-content: center;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const InstitutionLogo = styled.a`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: 20px;
+  aspect-ratio: 1 / 1;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  
+  filter: ${props => props.$active ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.5)'};
+  cursor: ${props => props.$active ? 'pointer' : 'default'};
+  pointer-events: ${props => props.$active ? 'auto' : 'none'};
+
+  &:hover {
+    transform: ${props => props.$active ? 'translateY(-5px)' : 'none'};
+    background: ${props => props.$active ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.6)'};
+    box-shadow: ${props => props.$active ? '0 10px 25px rgba(0,0,0,0.1)' : '0 4px 15px rgba(0,0,0,0.05)'};
+    filter: ${props => props.$active ? 'grayscale(0%)' : 'grayscale(100%) opacity(0.5)'};
+  }
+
+  img {
+    width: 80%;
+    height: 80%;
+    object-fit: contain;
+  }
+`;
+
 // --- UI Components ---
 const ExampleGroup = styled.div`
   display: flex;
@@ -252,7 +304,7 @@ const SearchContainer = styled.div`
   ${props => props.$isChatMode && css`
     position: absolute;
     /* 🔥 바닥에서 딱 24px만 띄우기 (가장 안정감 있는 여백) */
-    bottom: max(24px, env(safe-area-inset-bottom)); 
+    bottom: max(12px, env(safe-area-inset-bottom)); 
     
     /* 🔥 랜딩 페이지에서 쓰던 margin을 강제로 0으로 초기화해서 간섭 제거! */
     margin: 0; 
@@ -416,6 +468,19 @@ function App() {
     "🏃 선수: B팀 K3 가입 절차가 궁금해"
   ];
 
+  const institutions = [
+    { name: "KBO", file: "kbo.svg", url: "https://www.kleague.com/about/regulations.do", active: true },
+    { name: "K League", file: "kleague.png", url: "https://www.koreabaseball.com/Kbo/Board/Ebook/EbookPublication.aspx", active: true },
+    { name: "KFA", file: "kfa.png", url: "", active: false },
+    { name: "AFC", file: "afc.svg", url: "", active: false },
+    { name: "FIFA", file: "fifa.png", url: "", active: false },
+    { name: "IFAB", file: "ifab.png", url: "", active: false },
+    { name: "KBL", file: "kbl.svg", url: "", active: false },
+    { name: "LCK", file: "lck.svg", url: "", active: false },
+    { name: "MLB", file: "mlb.png", url: "", active: false },
+    { name: "UEFA", file: "uefa.png", url: "", active: false },
+  ];
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, hasInteracted]);
@@ -483,7 +548,7 @@ function App() {
               <HeroSection>
                 <LogoTitle>책첵 (Chaek-Check)</LogoTitle>
                 <p style={{ color: '#444', fontSize: '1.2rem', marginBottom: '30px', textAlign: 'center', fontWeight: 500 }}>
-                  방대한 스포츠 규정집, 이제 AI에게 바로 물어보세요.
+                  방대한 스포츠 규정집, AI에게 바로 물어보세요.
                 </p>
                 
                 <SearchContainer>
@@ -492,12 +557,12 @@ function App() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                      placeholder="예: B팀을 운영하는 최소 조건과 절차가 어떻게 돼?"
+                      placeholder="예: K리그팀 운영하는 최소 조건과 절차가 어떻게 돼?"
                       disabled={loading}
                       autoComplete="off"
                     />
                     <SendButton onClick={() => sendMessage()} disabled={loading}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                       </svg>
@@ -512,7 +577,7 @@ function App() {
                 </ExampleGroup>
 
                 <ScrollHint>
-                  <span>질문 전<br></br>'책첵' 서비스가 궁금하다면?</span>
+                  <span>질문 전,<br></br>'책첵' 서비스가 궁금하다면?</span>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="6 9 12 15 18 9"></polyline>
                   </svg>
@@ -536,6 +601,25 @@ function App() {
                     <p>제공된 출처를 클릭하면 PDF 규정집의 해당 페이지가 즉시 열려 육안으로 교차 검증이 가능합니다.</p>
                   </FeatureCard>
                 </FeatureGrid>
+
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                  <h3 style={{ color: '#222', fontSize: '1.5rem', fontWeight: 700 }}>규정 반영된 기관</h3>
+                  <LogoGrid>
+                    {institutions.map((inst, i) => (
+                      <InstitutionLogo 
+                        key={i} 
+                        href={inst.active ? inst.url : undefined} 
+                        target={inst.active ? "_blank" : undefined}
+                        rel={inst.active ? "noopener noreferrer" : undefined}
+                        $active={inst.active}
+                        title={inst.name}
+                      >
+                         <img src={`/assets/logos/${inst.file}`} alt={inst.name} />
+                      </InstitutionLogo>
+                    ))}
+                  </LogoGrid>
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px', textAlign: 'center'}}>해당 기관을 클릭하면 규정을 바로 확인할 수 있습니다.<br></br>등록되지 않은 기관의 규정은 점차 업데이트될 예정입니다.</p>
+                </div>
 
                 <div style={{ width: '100%', textAlign: 'center', marginTop: '40px' }}>
                   <h3 style={{ color: '#222', fontSize: '1.5rem', marginBottom: '20px', fontWeight: 700 }}>활용 예시</h3>
@@ -608,7 +692,7 @@ function App() {
                   autoComplete="off"
                 />
                 <SendButton onClick={() => sendMessage()} disabled={loading}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="22" y1="2" x2="11" y2="13"></line>
                     <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                   </svg>
