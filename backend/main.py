@@ -69,13 +69,7 @@ def get_session_history(session_id: str):
 def get_rag_chain():
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
 
-    base_retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-    
-    multi_query_retriever = MultiQueryRetriever.from_llm(
-        retriever=base_retriever,
-        llm=llm,
-        include_original=True
-    )
+    base_retriever = vectorstore.as_retriever(search_kwargs={"k": 2})
 
     contextualize_q_system_prompt = """
     주어진 채팅 기록과 최신 질문을 보고,
@@ -89,7 +83,7 @@ def get_rag_chain():
         ]
     )
     history_aware_retriever = create_history_aware_retriever(
-        llm, multi_query_retriever, contextualize_q_prompt
+        llm, base_retriever, contextualize_q_prompt
     )
 
     qa_system_prompt = """
@@ -98,11 +92,10 @@ def get_rag_chain():
     [핵심 규칙 - 반드시 지킬 것]
     1. 철벽 방어 (Guardrail): 질문이 '축구(K리그)'나 '야구(KBO)' 규정과 전혀 관련이 없거나 일반적인 일상 질문이라면 "죄송합니다. 저는 K리그 및 KBO 규정 전문 에이전트입니다. 축구나 야구 규정에 대해서만 답변해 드릴 수 있습니다. 🙇‍♂️" 라고 대답하세요.
     2. 팩트 체크: 반드시 제공된 [Context] 안에서만 정답을 찾으세요. 없으면 모른다고 하세요.
-    3. 🌟 조항 명시 (중요): 답변 시, [Context]에 명시된 특정 규정의 제목이나 '제O조 O항' 등의 번호가 있다면 "해당 내용은 [규정명] 제O조 O항에 명시되어 있습니다." 형식으로 답변 텍스트 내에 반드시 포함시켜 근거를 명확히 하세요.
+    3. 조항 명시 (중요): 답변 시, [Context]에 명시된 특정 규정의 제목이나 '제O조 O항' 등의 번호가 있다면 "해당 내용은 [규정명] 제O조 O항에 명시되어 있습니다." 형식으로 답변 텍스트 내에 반드시 포함시켜 근거를 명확히 하세요.
     4. 가독성: 마크다운(글머리 기호, 굵은 글씨 등)을 적극적으로 활용하여 요약해 주세요.
-    5. 🌟 자체 검증 (Self-Verification): 제공된 [Context] 들 중에는 질문과 무관한 데이터가 섞여 있을 수 있습니다. 답변을 모두 작성한 후, 맨 마지막 줄에 당신이 '실제로' 답변을 작성하는 데 유용하게 쓴 문서의 이름들만 골라서 적어주세요.
-    (형식은 반드시 아래와 같이 작성하세요)
-    VERIFIED_SOURCES: [사용한 문서명1, 사용한 문서명2]
+    5. 답변 회피 금지 및 상세 정리 (매우 중요): "자세한 내용은 해당 조항을 참고하세요", "규정되어 있습니다" 등으로 답변을 얼버무리지 마세요. 사용자가 묻는 조건, 절차, 금액, 수치 등의 **구체적인 알맹이(핵심 내용)를 직접 발췌하여 끝까지 상세하게 정리해서 답변**해야 합니다.
+
 
     [Context]:
     {context}
@@ -143,37 +136,33 @@ def chat_endpoint(request: ChatRequest):
             {"input": request.message},
             config={"configurable": {"session_id": request.session_id}}
         )
+        
         raw_answer = result["answer"]
         final_answer = raw_answer
-        verified_sources_str = ""
 
-        # ✨ AI가 스스로 남긴 검증(VERIFIED_SOURCES) 텍스트를 찾아내서 분리함
+        # AI가 VERIFIED_SOURCES를 출력했으면 그 부분만 잘라내기 (프론트엔드에 지저분하게 안 보이게)
         if "VERIFIED_SOURCES:" in raw_answer:
-            split_parts = raw_answer.split("VERIFIED_SOURCES:")
-            final_answer = split_parts[0].strip() # 실제 답변만 프론트엔드로 보냄
-            verified_sources_str = split_parts[1].strip() # AI가 인증한 출처 목록
-        
-        # ✨ 업그레이드: 번역 사전을 거쳐서 출처(Source) 이름 예쁘게 바꾸기
+            final_answer = raw_answer.split("VERIFIED_SOURCES:")[0].strip()
+
+        # 출처(Source) 가공 및 전달
         sources = []
         if "context" in result:
             seen = set()
             for doc in result["context"]:
                 raw_source = os.path.basename(doc.metadata.get("source", "Unknown"))
                 clean_source = REGULATION_NAMES.get(raw_source, raw_source.replace(".pdf", ""))
+                page = int(doc.metadata.get("page", 0)) + 1
+                key = f"{clean_source}-{page}"
                 
-                # 🛡️ Agent 검증 로직: AI가 인증한 목록(verified_sources_str)에 
-                # 이 파일명이 들어있을 때만 프론트엔드로 보냄! (아니면 버림)
-                if clean_source in verified_sources_str:
-                    page = int(doc.metadata.get("page", 0)) + 1
-                    key = f"{clean_source}-{page}"
-                    
-                    if key not in seen:
-                        seen.add(key)
-                        sources.append({
-                            "file": clean_source,
-                            "raw_file": raw_source,
-                            "page": page,
-                            "preview": doc.page_content[:100]})
+                if key not in seen:
+                    seen.add(key)
+                    # 🚨 깐깐한 필터링 제거: 일단 검색된 문서는 무조건 프론트엔드에 전달 (안전 모드)
+                    sources.append({
+                        "file": clean_source,
+                        "raw_file": raw_source,  # PDF 링크 연결을 위한 원본 영어 파일명
+                        "page": page,
+                        "preview": doc.page_content[:100]
+                    })
 
         return {
             "answer": final_answer,
