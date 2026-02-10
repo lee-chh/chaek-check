@@ -9,8 +9,8 @@ const GlobalStyle = createGlobalStyle`
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: transparent; /* 투명하게 변경! */
-    overflow: hidden; 
+    background: #000;
+    overflow: hidden; /* Prevent body scroll */
   }
   
   * {
@@ -23,7 +23,6 @@ const fadeIn = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-// 🚨 에러 원인 해결: keyframes를 밖으로 안전하게 빼냈습니다.
 const float = keyframes`
   0% { transform: translate(0, 0); }
   100% { transform: translate(30px, 50px); }
@@ -31,15 +30,21 @@ const float = keyframes`
 
 // --- Styled Components (Apple Liquid Glass) ---
 const Background = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100vw;
   height: 100vh;
+  /* 모바일 주소창 대응을 위한 dvh fallback */
+  height: 100dvh;
   background: radial-gradient(circle at 10% 20%, rgba(216, 241, 230, 0.46) 0%, rgba(233, 226, 226, 0.28) 90.1%),
               radial-gradient(circle at 90% 10%, rgba(176, 218, 255, 1) 0%, rgba(200, 200, 255, 0.2) 90%);
   background-size: 200% 200%;
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative; /* fixed 대신 relative 적용 */
+  z-index: 0;
+  overflow: hidden;
   
   &::before, &::after {
     content: '';
@@ -48,6 +53,7 @@ const Background = styled.div`
     filter: blur(60px);
     opacity: 0.6;
     animation: ${float} 10s infinite ease-in-out alternate;
+    z-index: -1;
   }
   
   &::before {
@@ -70,30 +76,37 @@ const Background = styled.div`
 `;
 
 const GlassContainer = styled.div`
-  width: 90%;
+  width: 100%;
   max-width: 900px;
-  height: 90vh;
+  height: 100%;
+  /* 데스크탑에서는 약간의 여백, 모바일에서는 꽉 차게 */
+  @media (min-width: 768px) {
+    width: 90%;
+    height: 90vh;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  }
+
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 24px;
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  z-index: 10; /* 배경보다 위에 위치 */
   transition: all 0.5s ease;
 `;
 
-// 🚨 에러 원인 해결: 커스텀 속성명 앞에 $를 붙여서 에러를 막았습니다.
 const HomeContent = styled.div`
   flex: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 40px;
+  padding: 20px;
   gap: 30px;
   animation: ${fadeIn} 0.6s ease-out;
   display: ${props => props.$visible ? 'flex' : 'none'};
@@ -109,6 +122,10 @@ const LogoTitle = styled.h1`
   letter-spacing: -1px;
   text-align: center;
   text-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  
+  @media (max-width: 480px) {
+    font-size: 2.2rem;
+  }
 `;
 
 const ExampleGroup = styled.div`
@@ -117,6 +134,7 @@ const ExampleGroup = styled.div`
   gap: 12px;
   justify-content: center;
   max-width: 600px;
+  width: 100%;
 `;
 
 const ExampleChip = styled.button`
@@ -146,7 +164,9 @@ const SearchContainer = styled.div`
   max-width: 600px;
   position: relative;
   transition: all 0.5s ease;
-  
+  padding: 0 20px; /* 기본 패딩 추가 */
+
+  /* Chat Mode Styles */
   ${props => props.$isChatMode && `
     position: absolute;
     bottom: 0;
@@ -154,6 +174,7 @@ const SearchContainer = styled.div`
     width: 100%;
     max-width: 100%;
     padding: 20px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom)); /* 아이폰 하단 바 대응 */
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(10px);
     border-top: 1px solid rgba(255,255,255,0.5);
@@ -180,6 +201,7 @@ const SearchInput = styled.input`
   box-shadow: 0 4px 20px rgba(0,0,0,0.05);
   transition: all 0.3s;
   backdrop-filter: blur(5px);
+  -webkit-appearance: none; /* 모바일 사파리 기본 스타일 제거 */
 
   &::placeholder {
     color: #999;
@@ -212,14 +234,28 @@ const SendButton = styled.button`
   cursor: pointer;
   transition: transform 0.2s, opacity 0.2s;
   box-shadow: 0 2px 8px rgba(118, 75, 162, 0.4);
+  z-index: 5;
 
-  &:hover { transform: scale(1.05); }
-  &:active { transform: scale(0.95); }
-  &:disabled { background: #ccc; box-shadow: none; cursor: default; }
+  &:hover {
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  &:disabled {
+    background: #ccc;
+    box-shadow: none;
+    cursor: default;
+  }
 
-  svg { margin-left: 2px; }
+  svg {
+    margin-left: 2px;
+  }
 `;
 
+// --- Chat Mode Components ---
 const Header = styled.div`
   position: absolute;
   top: 0;
@@ -245,26 +281,36 @@ const Header = styled.div`
 const ChatArea = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 80px 20px 100px 20px;
+  /* Header 높이(60px) + 여백 / Input 높이 예상치 + 여백 */
+  padding: 80px 20px 100px 20px; 
   display: flex;
   flex-direction: column;
   gap: 24px;
   scroll-behavior: smooth;
+  width: 100%;
   
-  &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.1);
+    border-radius: 3px;
+  }
 `;
 
 const MessageBubble = styled.div`
   display: flex;
   flex-direction: column;
-  max-width: 80%;
+  max-width: 90%; /* 모바일 고려해서 조금 더 넓게 */
+  @media (min-width: 768px) {
+    max-width: 80%;
+  }
   align-self: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
   animation: ${fadeIn} 0.3s ease-out;
 `;
 
 const BubbleContent = styled.div`
-  padding: 16px 20px;
+  padding: 14px 18px;
   border-radius: 20px;
   font-size: 0.95rem;
   line-height: 1.6;
@@ -359,24 +405,26 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, hasInteracted]);
 
+  // 바로 질문 전송
   const handleExampleClick = (text) => {
-    setInput(text);
-    document.getElementById("chat-input")?.focus();
+    sendMessage(text);
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+  const sendMessage = async (manualText = null) => {
+    // manualText가 있으면 그걸 쓰고, 없으면 input state 사용
+    const textToSend = typeof manualText === 'string' ? manualText : input;
 
-    const userMsg = input;
-    setInput("");
+    if (!textToSend.trim() || loading) return;
+
     setLoading(true);
+    setInput(""); // 입력창 비우기
     setHasInteracted(true); 
 
-    setMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    setMessages(prev => [...prev, { role: "user", content: textToSend }]);
 
     try {
       const response = await axios.post(`${API_URL}/chat`, {
-        message: userMsg
+        message: textToSend
       });
 
       setMessages(prev => [...prev, { 
@@ -461,7 +509,7 @@ function App() {
                 disabled={loading}
                 autoComplete="off"
               />
-              <SendButton onClick={sendMessage} disabled={loading}>
+              <SendButton onClick={() => sendMessage()} disabled={loading}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13"></line>
                   <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
