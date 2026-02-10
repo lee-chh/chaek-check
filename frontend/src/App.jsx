@@ -9,7 +9,7 @@ const GlobalStyle = createGlobalStyle`
     margin: 0;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: #000; /* 에러 났을 때 보이던 검은 화면의 정체! */
+    background: transparent; /* 투명하게 변경! */
     overflow: hidden; 
   }
   
@@ -31,18 +31,15 @@ const float = keyframes`
 
 // --- Styled Components (Apple Liquid Glass) ---
 const Background = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
   width: 100vw;
   height: 100vh;
   background: radial-gradient(circle at 10% 20%, rgba(216, 241, 230, 0.46) 0%, rgba(233, 226, 226, 0.28) 90.1%),
               radial-gradient(circle at 90% 10%, rgba(176, 218, 255, 1) 0%, rgba(200, 200, 255, 0.2) 90%);
   background-size: 200% 200%;
-  z-index: -1;
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative; /* fixed 대신 relative 적용 */
   
   &::before, &::after {
     content: '';
