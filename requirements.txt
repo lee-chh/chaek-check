@@ -68,7 +68,7 @@ mypy_extensions==1.1.0
 narwhals==2.16.0
 numpy==2.0.1
 oauthlib==3.3.1
-onnxruntime==1.19.2
+onnxruntime
 openai==2.17.0
 opentelemetry-api==1.39.1
 opentelemetry-exporter-otlp-proto-common==1.39.1
