@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
@@ -59,6 +59,28 @@ vectorstore = PineconeVectorStore.from_existing_index(
     embedding=embeddings
 )
 
+# 🟢 [신규] 라우터 출력 스키마 정의
+class RouteQuery(BaseModel):
+    domain: str = Field(description="분류 결과: 'K리그', 'KBO', '미지원스포츠', '비관련'")
+
+# 🟢 [신규] 의도 분류 라우터 체인
+def get_router_chain():
+    # 라우팅은 속도가 생명이니 가장 빠르고 저렴한 모델을 씁니다.
+    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0) 
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", """당신은 질문 분류기입니다. 사용자의 질문을 분석하여 정확히 다음 4가지 중 하나의 값을 반환하세요:
+        - K리그: 한국 프로축구, K리그 구단/선수, 축구 규칙
+        - KBO: 한국 프로야구, KBO 구단/선수, 야구 규칙
+        - 미지원스포츠: 농구(KBL, NBA), 배구, e스포츠, 해외축구(EPL) 등 K리그/KBO가 아닌 타 종목 및 해외 리그
+        - 비관련: 날씨, 요리, 주식 등 스포츠와 아예 무관한 일상 질문
+        """),
+        ("human", "{question}")
+    ])
+    # LLM이 무조건 RouteQuery 형식(JSON)으로만 대답하게 강제합니다.
+    return prompt | llm.with_structured_output(RouteQuery)
+
+router_chain = get_router_chain()
+
 session_store = {}
 
 def get_session_history(session_id: str):
@@ -91,15 +113,15 @@ def get_rag_chain():
     )
 
     qa_system_prompt = """
-    당신은 스포츠 규정에 대해 친절하고 정확하게 알려주는 전문 AI 에이전트 '책첵(Chaek-Check)'입니다. ⚽️⚾️
+    당신은 스포츠 규정에 대해 친절하고 정확하게 알려주는 전문 AI 에이전트 '책첵(Chaek-Check)'입니다.
 
     [핵심 규칙 - 반드시 지킬 것]
-    1. 철벽 방어 (Out of Domain): 질문이 '축구'나 '야구'와 아예 무관한 일상 질문(예: 날씨, 요리, 농구 등)일 때만 "죄송합니다. 저는 K리그 및 KBO 규정 전문 에이전트입니다..." 라고 대답하세요. 축구/야구 관련 단어가 포함되어 있다면 이 멘트를 쓰지 마세요.
-    2. 팩트 체크 및 검색 실패 (No Context): 질문이 축구/야구와 관련이 있더라도, 제공된 [Context]에 정답이 없다면 "제공된 규정집에서 해당 내용을 찾을 수 없습니다." 라고 명확하게 답변하세요. 지어내지 마세요.
-    3. 조항 명시: 답변 시, [Context]에 명시된 조항 번호나 제목이 있다면 반드시 실제 내용에 기반하여 포함시키세요.    4. 가독성: 마크다운(글머리 기호, 굵은 글씨 등)을 적극적으로 활용하여 요약해 주세요.
-    5. 답변 회피 금지 및 상세 정리 (매우 중요): "자세한 내용은 해당 조항을 참고하세요", "규정되어 있습니다" 등으로 답변을 얼버무리지 마세요. 사용자가 묻는 조건, 절차, 금액, 수치 등의 **구체적인 알맹이(핵심 내용)를 직접 발췌하여 끝까지 상세하게 정리해서 답변**해야 합니다.
-    6. 이전 대화 의존 금지 (매우 중요): 이전 대화 기록은 문맥 파악용입니다. 규정의 구체적인 제재 내용, 수치, 금액 등은 절대 이전 대화에서 베껴오지 마시고 오직 현재 [Context]에서만 추출하세요.
-
+    1. 팩트 체크 및 우아한 거절: 제공된 [Context]에 정답이 없다면 절대 지어내지 말고 아래 멘트로 정중하게 답변하세요.
+       "현재 책첵(Chaek-Check)에 업데이트된 공식 규정집 내에서는 해당 질문에 대한 명확한 조항을 찾을 수 없습니다. 🙇‍♂️ 규정이 아직 업데이트되지 않았거나, 연맹의 다른 세칙에 포함된 내용일 수 있습니다."
+    2. 가독성과 완결성 (매우 중요): 마크다운(글머리 기호, 굵은 글씨 등)을 활용해 상세하게 요약하세요. 사용자가 다른 문서를 찾아볼 필요가 없도록 조건, 절차, 수치 등 핵심 내용을 빠짐없이 작성하며 대화를 마무리하세요. ("자세한 내용은 참고하세요" 등 얼버무리기 절대 금지)
+    3. 엄격한 출처 명시: 답변 시 [Context]에 '제O조' 같은 조항 번호가 명확히 보일 때만 언급하세요. 번호가 안 보이면 억지로 지어내지 말고 내용만 설명하세요. (없는 징계 조항 등 임의 창작 금지)
+    4. 이전 대화 의존 금지: 이전 대화 기록은 문맥 파악용으로만 쓰세요. 규정의 구체적인 수치나 제재 금액은 오직 현재의 [Context]에서만 추출하고 이전 대화에서 베끼지 마세요.
+    
     [Context]:
     {context}
     """
@@ -129,44 +151,63 @@ def chat_endpoint(request: ChatRequest):
     start_time = time.time()
     
     try:
-        conversational_rag_chain = RunnableWithMessageHistory(
-            rag_chain_instance,
-            get_session_history,
-            input_messages_key="input",
-            history_messages_key="chat_history",
-            output_messages_key="answer",
-        )
-        
-        result = conversational_rag_chain.invoke(
-            {"input": request.message},
-            config={"configurable": {"session_id": request.session_id}}
-        )
-        
-        raw_answer = result["answer"]
-        final_answer = raw_answer
-            
-        # 🚨 [추가된 로직] AI가 "철벽 방어" 멘트를 치면 출처 박스를 차단합니다!
-        is_refusal = "죄송합니다" in final_answer and "에이전트" in final_answer
+        # 1. 🟢 [신규 로직] DB 검색 전에 질문 의도부터 파악 (라우팅)
+        classification = router_chain.invoke({"question": request.message})
+        domain = classification.domain
 
-        # 출처(Source) 가공 및 전달
+        final_answer = ""
         sources = []
-        # 🚨 [수정된 로직] is_refusal이 아닐 때(정상 답변일 때)만 출처를 만듭니다!
-        if "context" in result and not is_refusal: 
-            seen = set()
-            for doc in result["context"]:
-                raw_source = os.path.basename(doc.metadata.get("source", "Unknown"))
-                clean_source = REGULATION_NAMES.get(raw_source, raw_source.replace(".pdf", ""))
-                page = int(doc.metadata.get("page", 0)) + 1
-                key = f"{clean_source}-{page}"
-                
-                if key not in seen:
-                    seen.add(key)
-                    sources.append({
-                        "file": clean_source,
-                        "raw_file": raw_source,
-                        "page": page,
-                        "preview": doc.page_content[:100]
-                    })
+        is_refusal = False
+
+        # 2. 🟢 [신규 로직] 라우팅 결과에 따른 완벽한 분기 처리 (Early Return)
+        if domain == "비관련":
+            final_answer = "죄송합니다. 저는 스포츠 규정 전문 에이전트 '책첵'입니다. 스포츠 규정과 관련된 질문에만 답변해 드릴 수 있습니다. 🙇‍♂️"
+            is_refusal = True
+            
+        elif domain == "미지원스포츠":
+            final_answer = "질문해주신 종목(또는 기관)의 규정은 현재 책첵(Chaek-Check)에 업데이트를 준비하고 있습니다! 🙇‍♂️ 현재 베타 버전에서는 K리그 및 KBO 관련 공식 규정을 중심으로 팩트체크를 지원하고 있습니다. 조금만 기다려 주시면 더 다양한 스포츠 규정으로 찾아뵙겠습니다."
+            is_refusal = True
+            
+        else:
+            conversational_rag_chain = RunnableWithMessageHistory(
+                rag_chain_instance,
+                get_session_history,
+                input_messages_key="input",
+                history_messages_key="chat_history",
+                output_messages_key="answer",
+            )
+            
+            result = conversational_rag_chain.invoke(
+                {"input": request.message},
+                config={"configurable": {"session_id": request.session_id}}
+            )
+            
+            raw_answer = result["answer"]
+            final_answer = raw_answer
+            
+            # 🟢 [수정된 로직] RAG가 정답을 못 찾고 '우아한 거절'을 했을 때 출처 카드를 차단합니다!
+            is_refusal = "명확한 조항을 찾을 수 없습니다" in final_answer
+
+            # 출처(Source) 가공 및 전달
+            sources = []
+            # 🚨 [수정된 로직] is_refusal이 아닐 때(정상 답변일 때)만 출처를 만듭니다!
+            if "context" in result and not is_refusal: 
+                seen = set()
+                for doc in result["context"]:
+                    raw_source = os.path.basename(doc.metadata.get("source", "Unknown"))
+                    clean_source = REGULATION_NAMES.get(raw_source, raw_source.replace(".pdf", ""))
+                    page = int(doc.metadata.get("page", 0)) + 1
+                    key = f"{clean_source}-{page}"
+                    
+                    if key not in seen:
+                        seen.add(key)
+                        sources.append({
+                            "file": clean_source,
+                            "raw_file": raw_source,
+                            "page": page,
+                            "preview": doc.page_content[:100]
+                        })
+                        
         end_time = time.time()  # 🟢 3. 모든 작업이 끝난 후 스톱워치 종료!
         generation_time = round(end_time - start_time, 2)  # 소수점 둘째 자리까지 반올림 (예: 3.45)
         
