@@ -12,6 +12,7 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.retrievers import MultiQueryRetriever
 from dotenv import load_dotenv
 import os
+import time
 
 # 1. 환경 변수 로드
 load_dotenv()
@@ -67,7 +68,7 @@ def get_session_history(session_id: str):
 
 # 6. RAG 체인 (가드레일 & 조항 명시 프롬프트 장착)
 def get_rag_chain():
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+    llm = ChatOpenAI(model="gpt-4.1-nano", temperature=0)
 
     base_retriever = vectorstore.as_retriever(
         search_type="similarity",
@@ -125,6 +126,8 @@ def read_root():
 
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
+    start_time = time.time()
+    
     try:
         conversational_rag_chain = RunnableWithMessageHistory(
             rag_chain_instance,
@@ -164,10 +167,13 @@ def chat_endpoint(request: ChatRequest):
                         "page": page,
                         "preview": doc.page_content[:100]
                     })
-
+        end_time = time.time()  # 🟢 3. 모든 작업이 끝난 후 스톱워치 종료!
+        generation_time = round(end_time - start_time, 2)  # 소수점 둘째 자리까지 반올림 (예: 3.45)
+        
         return {
             "answer": final_answer,
-            "sources": sources
+            "sources": sources,
+            "generation_time": generation_time
         }
         
     except Exception as e:

@@ -16,6 +16,7 @@ const GlobalStyle = createGlobalStyle`
   * {
     box-sizing: border-box;
   }
+  @keyframes spin { 100% { transform: rotate(360deg); } }
 `;
 
 const fadeIn = keyframes`
@@ -48,6 +49,43 @@ const marquee = keyframes`
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 `;
+const pulse = keyframes`
+  0% { opacity: 0.5; }
+  50% { opacity: 0.2; }
+  100% { opacity: 0.5; }
+`;
+
+const SkeletonBubble = styled.div`
+  display: flex; flex-direction: column; max-width: 85%;
+  align-self: flex-start;
+  animation: ${fadeIn} 0.3s ease-out;
+`;
+
+const SkeletonContent = styled.div`
+  padding: 16px 22px; border-radius: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  width: 320px; /* 말풍선 기본 너비 */
+`;
+
+const SkeletonLine = styled.div`
+  height: 12px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  margin-bottom: 12px;
+  width: ${props => props.width || '100%'};
+  animation: ${pulse} 1.5s infinite ease-in-out;
+`;
+
+const SkeletonSource = styled.div`
+  height: 70px;
+  background: rgba(240, 245, 250, 0.9);
+  border-radius: 12px;
+  margin-top: 15px;
+  animation: ${pulse} 1.5s infinite ease-in-out;
+`;
+
 
 // --- Styled Components ---
 const Background = styled.div`
@@ -449,6 +487,7 @@ function App() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [loadingText, setLoadingText] = useState("📚 관련 규정을 탐색할 준비 중...");
   const messagesEndRef = useRef();
 
   const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
@@ -485,6 +524,26 @@ function App() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, hasInteracted]);
 
+  useEffect(() => {
+    let interval;
+    if (loading) {
+      const loadingMessages = [
+        "📚 관련 규정을 Pinecone DB에서 찾는 중...",
+        "🔍 여러 규정집을 꼼꼼히 읽어보는 중...",
+        "✍️ 사용자님을 위한 답변을 정리하고 있습니다!",
+        "✨ 거의 다 왔습니다! 최종 검토 중..."
+      ];
+      let msgIndex = 0;
+      setLoadingText(loadingMessages[0]); // 처음 시작할 때 1번 메시지 띄우기
+      
+      interval = setInterval(() => {
+        msgIndex = (msgIndex + 1) % loadingMessages.length;
+        setLoadingText(loadingMessages[msgIndex]);
+      }, 1500); // 1.5초마다 메시지 변경!
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
+
   const sendMessage = async (manualText = null) => {
     const textToSend = typeof manualText === 'string' ? manualText : input;
     if (!textToSend.trim() || loading) return;
@@ -520,7 +579,8 @@ function App() {
       setMessages(prev => [...prev, { 
         role: "assistant", 
         content: response.data.answer,
-        sources: response.data.sources 
+        sources: response.data.sources,
+        generationTime: response.data.generation_time // 🟢 백엔드에서 준 시간 저장!
       }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: "assistant", content: "서버 연결에 실패했습니다." }]);
@@ -670,11 +730,33 @@ function App() {
                         </ul>
                       </SourceCard>
                     )}
+                    {msg.generationTime && (
+                      <div style={{ textAlign: 'right', fontSize: '0.8rem', color: '#888', marginTop: '10px', fontFamily: 'monospace' }}>
+                        ⏱️ 응답 소요 시간: {msg.generationTime}초
+                      </div>
+                    )}
                   </BubbleContent>
                 </MessageBubble>
               ))}
               
-              {loading && <div style={{textAlign: 'center', color: '#888', fontSize: '0.9rem', marginTop: '20px'}}>규정집을 분석하는 중입니다...</div>}
+              {/* 예쁜 스켈레톤 로딩 UI */}
+              {loading && (
+                <SkeletonBubble>
+                  <SkeletonContent>
+                    {/* 1.5초마다 바뀌는 재치 있는 로딩 메시지 */}
+                    <div style={{ color: '#4A90E2', fontSize: '0.95rem', fontWeight: '700', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ display: 'inline-block', animation: 'spin 2s linear infinite' }}>⏳</span> 
+                      {loadingText}
+                    </div>
+                    {/* 깜빡거리는 가짜 텍스트 줄 */}
+                    <SkeletonLine width="90%" />
+                    <SkeletonLine width="70%" />
+                    <SkeletonLine width="85%" />
+                    {/* 깜빡거리는 가짜 출처 카드 */}
+                    <SkeletonSource />
+                  </SkeletonContent>
+                </SkeletonBubble>
+              )}
               <div ref={messagesEndRef} />
             </ChatArea>
           )}
