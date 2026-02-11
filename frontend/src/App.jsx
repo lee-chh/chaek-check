@@ -151,14 +151,19 @@ const ContentWrapper = styled.div`
 `;
 
 const HeroSection = styled.div`
-  min-height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 60px 20px;
   position: relative;
   animation: ${fadeIn} 0.8s ease-out;
+
+  @media (max-width: 480px) {
+    min-height: auto; /* 모바일에선 높이 고정 해제 */
+    padding: 100px 20px 40px 20px; /* 상단 여백 확보 */
+  }
 `;
 
 const LogoTitle = styled.h1`
@@ -186,6 +191,12 @@ const ScrollHint = styled.div`
   animation: ${bounce} 2s infinite;
   opacity: 0.8;
   text-align: center;
+
+  @media (max-width: 480px) {
+    position: relative; /* 모바일선 절대위치 해제 */
+    bottom: auto;
+    margin-top: 50px; /* 예시 질문 버튼과 간격 확보 */
+  }
 `;
 
 const DetailsSection = styled.div`
@@ -271,6 +282,19 @@ const LogoGrid = styled.div`
   }
 `;
 
+const GridInfoText = styled.p`
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 30px; /* 10px에서 30px로 상향 */
+  text-align: center;
+  line-height: 1.6;
+  padding: 0 10px;
+
+  @media (max-width: 480px) {
+    margin-top: 40px; /* 모바일에서 더 띄움 */
+  }
+`;
+
 const InstitutionLogo = styled.a`
   display: flex;
   justify-content: center;
@@ -352,6 +376,17 @@ const ExampleGroup = styled.div`
   max-width: 700px;
   width: 100%;
   margin-top: 40px;
+
+  @media (max-width: 480px) {
+    gap: 8px; /* 간격을 좁혀서 더 많이 들어가게 함 */
+    margin-top: 25px;
+    
+    button {
+      font-size: 0.85rem; /* 글자 크기 살짝 축소 */
+      padding: 10px 18px;
+      width: 100%; /* 모바일에서 버튼을 한 줄씩 꽉 차게 하고 싶다면 활성화 */
+    }
+  }
 `;
 
 const ExampleChip = styled.button`
@@ -573,9 +608,9 @@ function App() {
   const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
   const exampleQuestions = [
-    "K리그에서 심판에 강하게 항의했을 때 벌금의 최대 액수는?",
+    "K리그에서 유니폼 색상 관련 규정은?",
     "K리그 클럽 라이센스 조건은?",
-    "KBO 샐러리캡 위반 제재금 알려줘",
+    "KBO 경기 사용구 규정",
     "KBO FA 자격 취득 요건은 어떻게 돼?"
   ];
 
@@ -773,7 +808,10 @@ function App() {
                       </InstitutionLogo>
                     ))}
                   </LogoGrid>
-                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '10px', textAlign: 'center'}}>해당 기관을 클릭하면 규정을 바로 확인할 수 있습니다.<br></br>등록되지 않은 기관의 규정은 점차 업데이트될 예정입니다.</p>
+                  <GridInfoText>
+                    해당 기관을 클릭하면 규정을 바로 확인할 수 있습니다.<br />
+                    등록되지 않은 기관의 규정은 점차 업데이트될 예정입니다.
+                  </GridInfoText>
                 </div>
 
                 <div style={{ width: '100%', textAlign: 'center', marginTop: '40px' }}>
