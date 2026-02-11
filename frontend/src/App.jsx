@@ -623,8 +623,8 @@ function App() {
   ];
 
   const institutions = [
-    { name: "KBO", file: "kbo.svg", url: "https://www.kleague.com/about/regulations.do", active: true },
-    { name: "K League", file: "kleague.png", url: "https://www.koreabaseball.com/Kbo/Board/Ebook/EbookPublication.aspx", active: true },
+    { name: "KBO", file: "kbo.svg", url: "https://www.koreabaseball.com/Kbo/Board/Ebook/EbookPublication.aspx", active: true },
+    { name: "K League", file: "kleague.png", url: "https://www.kleague.com/about/regulations.do", active: true },
     { name: "KFA", file: "kfa.png", url: "", active: false },
     { name: "AFC", file: "afc.svg", url: "", active: false },
     { name: "FIFA", file: "fifa.png", url: "", active: false },
