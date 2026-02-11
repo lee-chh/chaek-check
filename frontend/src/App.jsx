@@ -597,19 +597,70 @@ const SourceCard = styled.div`
   li { margin-bottom: 8px; &:last-child { margin-bottom: 0; } }
 `;
 
+const ServerWarmingOverlay = styled.div`
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  padding: 12px 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: ${fadeIn} 0.4s ease-out;
+  max-width: 90%;
+
+  span {
+    font-size: 0.9rem;
+    color: #444;
+    font-weight: 600;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+`;
+
 function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [loadingText, setLoadingText] = useState("📚 관련 규정을 탐색할 준비 중...");
+  const [serverWarming, setServerWarming] = useState(false);
+  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+
+  useEffect(() => {
+    const checkServer = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3초 내 무응답 시 중단
+
+        await axios.get(`${API_URL}/`, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        setServerWarming(false); // 깨어있음
+      } catch (err) {
+        setServerWarming(true); // 잠들어 있음 (메시지 표시)
+        const retryInterval = setInterval(async () => {
+          try {
+            await axios.get(`${API_URL}/`);
+            setServerWarming(false);
+            clearInterval(retryInterval);
+          } catch (e) {}
+        }, 5000);
+      }
+    };
+    checkServer();
+  }, [API_URL]);
+
   const messagesEndRef = useRef();
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
   const exampleQuestions = [
     "K리그에서 유니폼 색상 관련 규정은?",
-    "K리그 클럽 라이센스 조건은?",
+    "K리그 클럽 라이선스 조건은?",
     "KBO 경기 사용구 규정",
     "KBO FA 자격 취득 요건은 어떻게 돼?"
   ];
@@ -722,6 +773,23 @@ function App() {
   return (
     <>
       <GlobalStyle />
+      {/* 🟢 서버가 부팅 중일 때만 상단에 띄우는 알림창 */}
+      {serverWarming && (
+        <ServerWarmingOverlay>
+          {/* 세련된 미니멀 스피너 */}
+          <div style={{ 
+            width: '18px', height: '18px', 
+            border: '3px solid rgba(74, 144, 226, 0.2)',
+            borderTop: '3px solid #9013FE', 
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite' 
+          }} />
+          <span>
+            책첵에 오신 것을 환영합니다! ⚽️⚾️{"\n"}
+            현재 서버를 깨우고 있습니다. 최대 30초 정도 소요될 수 있습니다.
+          </span>
+        </ServerWarmingOverlay>
+      )}
       <Background>
         {/* 🔥 수정됨: GlassContainer -> MainContainer */}
         <MainContainer>
