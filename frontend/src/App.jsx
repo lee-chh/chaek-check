@@ -303,6 +303,46 @@ const InstitutionLogo = styled.a`
   }
 `;
 
+const FooterContainer = styled.footer`
+  width: 100%;
+  padding: 40px 20px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  margin-top: auto;
+`;
+
+const FooterText = styled.p`
+  margin: 0;
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+`;
+
+const FooterLinks = styled.div`
+  display: flex;
+  gap: 20px;
+  align-items: center;
+`;
+
+const FooterLink = styled.a`
+  color: #555;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    color: #4A90E2;
+    text-decoration: underline;
+  }
+`;
+
 // --- UI Components ---
 const ExampleGroup = styled.div`
   display: flex;
@@ -397,9 +437,9 @@ const SearchInput = styled.input`
 
 const SendButton = styled.button`
   position: absolute;
-  right: 12px;
-  width: 44px;
-  height: 44px;
+  right: 8px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, #4A90E2 0%, #9013FE 100%); 
   border: none;
@@ -408,11 +448,51 @@ const SendButton = styled.button`
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  padding: 0;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 15px rgba(74, 144, 226, 0.4);
   
+  svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2; /* 선 굵기를 3->2로 낮춰서 뭉개짐(점 현상) 방지 */
+    flex-shrink: 0;
+  }
+
   &:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(74, 144, 226, 0.6); }
   &:disabled { background: #ccc; cursor: default; box-shadow: none; }
+`;
+
+const SideButton = styled.button`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  flex-shrink: 0;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    color: #333;
+  }
 `;
 
 // --- Chat Components ---
@@ -493,10 +573,10 @@ function App() {
   const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
 
   const exampleQuestions = [
-    "K리그 U22 의무 출전 규정이 뭐야?",
-    "KBO 신인 드래프트 참가 자격은?",
+    "K리그에서 심판에 강하게 항의했을 때 벌금의 최대 액수는?",
+    "K리그 클럽 라이센스 조건은?",
     "KBO 샐러리캡 위반 제재금 알려줘",
-    "FA 자격 취득 요건은 어떻게 돼?"
+    "KBO FA 자격 취득 요건은 어떻게 돼?"
   ];
 
   const marqueeItems = [
@@ -589,6 +669,21 @@ function App() {
     }
   };
 
+  const handleReset = () => {
+    window.location.reload();
+  };
+
+  const handleSave = () => {
+    const content = messages.map(m => `### ${m.role === 'user' ? '질문' : '답변'}\n${m.content}\n`).join('\n---\n');
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'chaek-check-chat.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -622,7 +717,7 @@ function App() {
                       autoComplete="off"
                     />
                     <SendButton onClick={() => sendMessage()} disabled={loading}>
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                       </svg>
@@ -692,6 +787,26 @@ function App() {
                   </MarqueeContainer>
                 </div>
               </DetailsSection>
+              
+              <FooterContainer>
+                <FooterLinks>
+                  <FooterLink href="https://github.com/lee-chh/chaek-check" target="_blank" rel="noopener noreferrer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+                    </svg>
+                    GitHub
+                  </FooterLink>
+                  <FooterLink href="tjdnftks12@naver.com">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                      <polyline points="22,6 12,13 2,6"></polyline>
+                    </svg>
+                    Contact
+                  </FooterLink>
+                </FooterLinks>
+                <FooterText>© {new Date().getFullYear()} Chaek-Check. All rights reserved.</FooterText>
+              </FooterContainer>
+
             </ContentWrapper>
           </LandingScrollArea>
 
@@ -764,22 +879,39 @@ function App() {
           {/* 하단 고정 검색바 (채팅 모드일 때만) */}
           {hasInteracted && (
             <SearchContainer $isChatMode={true}>
-              <SearchInputWrapper>
-                <SearchInput 
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-                  placeholder="추가 질문을 입력하세요..."
-                  disabled={loading}
-                  autoComplete="off"
-                />
-                <SendButton onClick={() => sendMessage()} disabled={loading}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%' }}>
+                <SideButton onClick={handleSave} title="대화 저장">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
                   </svg>
-                </SendButton>
-              </SearchInputWrapper>
+                </SideButton>
+
+                <SearchInputWrapper>
+                  <SearchInput 
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                    placeholder="추가 질문을 입력하세요..."
+                    disabled={loading}
+                    autoComplete="off"
+                  />
+                  <SendButton onClick={() => sendMessage()} disabled={loading}>
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </SendButton>
+                </SearchInputWrapper>
+
+                <SideButton onClick={handleReset} title="홈으로">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                  </svg>
+                </SideButton>
+              </div>
             </SearchContainer>
           )}
 
